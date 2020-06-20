@@ -1,1 +1,0 @@
-Zadania domowego z TRENERAMI I DRU¯YNAMI jeszcze nie skoñczy³em doœle do koñca tygodnia.
