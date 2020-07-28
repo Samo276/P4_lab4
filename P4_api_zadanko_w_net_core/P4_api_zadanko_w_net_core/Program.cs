@@ -1,74 +1,79 @@
 ﻿using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace P4_api_zadanko_w_net_core
 {
+    
     class Program
     {
-        static async Task Main(string[] args)
+        
+        
+        public static async Task Main(string[] args)
         {
-            
+            using var db = new TrenerzyContext();
+            db.Database.EnsureCreated();
 
             var API = new Website(" https://api.collegefootballdata.com");
             var teams = API.DownloadAsync("/teams/fbs").Result.Content;
-            var _coaches = API.DownloadAsync("/coaches").Result.Content;
-            using var db = new TrenerzyContext();
-            
-            db.Database.EnsureCreated();
-            //var task = new List<Task<IRestResponse>>();
-            
+            var advanced = API.DownloadAsync("/stats/season/advanced?year=2010").Result.Content; 
+            //ustawiłem na rok 2010 bo endpoint chcial dostac rok i nie chcial bez niego puscic
+
+
+
+
+
             var deserializer = JsonSerializer.Deserialize<Teams[]>(teams, new JsonSerializerOptions()
             {
                 PropertyNameCaseInsensitive = true
             });
-
+            //Console.WriteLine(deserializer);
 
             foreach (var item in deserializer)
             {
                 var tmp = new Teams()
                 {
-                        //id = item.id,
-                        school =item.school,
-                        abbreviation = item.abbreviation,
-                        Coach = null,
-                 };
+                    school = item.school,
+                    abbreviation = item.abbreviation,
+                    conference = item.conference,
+                    AdvancedStats = null
+                };
                 //Console.WriteLine(item.school);
                 db.Add<Teams>(tmp);
             }
-            db.SaveChanges();
+            await db.SaveChangesAsync();
 
 
-            
-            //tutaj nie schce zrzucić trenerow do klasy, dlaczego?
-            var deserializer_trenerow =  JsonSerializer.Deserialize<coaches[]>(_coaches, new JsonSerializerOptions() 
+
+           
+
+            //tutaj nie schce zrzucić advanced do klasy, dlaczego?  <<---------------------------- //ok działa
+            var deserializer_trenerow =  JsonSerializer.Deserialize<Advanced[]>(advanced, new JsonSerializerOptions()
             {
                 PropertyNameCaseInsensitive = true
             });
-            
+
             
 
             foreach (var item in deserializer_trenerow)
             {
-                var dude = new coaches
+                var stats = new Advanced
                 {
-                    last_name = item.last_name,
-                    first_name = item.first_name,
-                    Seasons = item.Seasons
+                    //season = item.season,
+                    team = item.team,
+                    conference = item.conference,
                 };
-                //Console.WriteLine(dude.last_name);
-                db.Add<coaches>(dude);
+                //Console.WriteLine(item.conference);
+                db.Add<Advanced>(stats);
+                
+                foreach (var item2 in db.teams)
+                    if (item.conference == item2.conference) item2.AdvancedStats = stats;
             }
-            db.SaveChanges();
-
-            foreach (var item in db.teams)
-                item.Coach = (coaches)db.coaches.Where(x => item.school == x.Seasons.FirstOrDefault().school);               
-            
-            db.SaveChanges();
-            
+            await db.SaveChangesAsync();
         }
     }
 }

@@ -5,10 +5,10 @@ using System.Text;
 
 namespace P4_api_zadanko_w_net_core
 {
-    public class coaches
+    public class Advanced
     {
-        
-        int id { get; set; }
+
+        //int id { get; set; }
         /*public string first_name { get; set; }
         [Key]
         public string last_name { get; set; }
@@ -19,9 +19,10 @@ namespace P4_api_zadanko_w_net_core
         {
             throw new NotImplementedException();
         }*/
-
+        [Key]//[Newtonsoft.Json.JsonIgnore]
+        public int id { get;  set; }
+        //[Newtonsoft.Json.JsonIgnore]
         public string team { get; set; }
-        [Key]
         public string conference { get; set; }
     }
 }

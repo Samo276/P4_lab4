@@ -8,7 +8,7 @@ namespace P4_api_zadanko_w_net_core
     public class TrenerzyContext : DbContext
     {
         public DbSet<Teams> teams { get; set; }
-        public DbSet<coaches> coaches { get; set; }
+        public DbSet<Advanced> advanced { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
