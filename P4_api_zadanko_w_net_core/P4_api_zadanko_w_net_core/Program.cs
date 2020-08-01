@@ -1,4 +1,5 @@
-﻿using RestSharp;
+﻿using Microsoft.EntityFrameworkCore.Storage;
+using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,72 +9,87 @@ using System.Threading.Tasks;
 
 namespace P4_api_zadanko_w_net_core
 {
-    
+
     class Program
     {
-        
-        
-        public static async Task Main(string[] args)
+
+        public static Website API = new Website("https://api.collegefootballdata.com");
+        public static async Task Main()
         {
+            
             using var db = new TrenerzyContext();
             db.Database.EnsureCreated();
 
-            var API = new Website(" https://api.collegefootballdata.com");
-            var teams = API.DownloadAsync("/teams/fbs").Result.Content;
-            var advanced = API.DownloadAsync("/stats/season/advanced?year=2010").Result.Content; 
-            //ustawiłem na rok 2010 bo endpoint chcial dostac rok i nie chcial bez niego puscic
-
-
-
-
-
+            var teams = await _getTeams();
+            
             var deserializer = JsonSerializer.Deserialize<Teams[]>(teams, new JsonSerializerOptions()
-            {
-                PropertyNameCaseInsensitive = true
-            });
-            //Console.WriteLine(deserializer);
-
-            foreach (var item in deserializer)
-            {
-                var tmp = new Teams()
-                {
-                    school = item.school,
-                    abbreviation = item.abbreviation,
-                    conference = item.conference,
-                    AdvancedStats = null
-                };
-                //Console.WriteLine(item.school);
-                db.Add<Teams>(tmp);
-            }
-            await db.SaveChangesAsync();
-
-
-
-           
-
-            //tutaj nie schce zrzucić advanced do klasy, dlaczego?  <<---------------------------- //ok działa
-            var deserializer_trenerow =  JsonSerializer.Deserialize<Advanced[]>(advanced, new JsonSerializerOptions()
             {
                 PropertyNameCaseInsensitive = true
             });
 
             
 
-            foreach (var item in deserializer_trenerow)
+            foreach (var item in deserializer)
             {
-                var stats = new Advanced
+                db.teams.Add(await _addTeam(item));
+                db.SaveChanges();
+            };
+
+            
+
+            Console.WriteLine("\n\n-----------------KONIEC-------------------\n\n\n");
+
+
+        }
+
+        public static async Task<Teams> _addTeam(Teams item)
+        {
+            
+            var ekipa = new Teams
+            {
+                abbreviation = item.abbreviation,
+                school = item.school,
+                conference = item.conference,
+                team = await _getAdvanced(item.conference)
+            };
+            
+            return ekipa;
+        }
+       
+
+        public static async Task<string> _getTeams()
+        {
+            return API.Download("/teams/fbs");
+        }
+        public static async Task<string> _getAdvanced(string _nazwaConfy)
+        {
+            List<Advanced> lista = new List<Advanced>();
+
+            var advanced = await _downloadAdvanced();
+            var deserializer_advanced = JsonSerializer.Deserialize<Advanced[]>(advanced, new JsonSerializerOptions()
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            foreach (var item in deserializer_advanced)
+            {
+                lista.Add(new Advanced
                 {
-                    //season = item.season,
                     team = item.team,
                     conference = item.conference,
-                };
-                //Console.WriteLine(item.conference);
-                db.Add<Advanced>(stats);
-                
-                foreach (var item2 in db.teams)
-                    if (item.conference == item2.conference) item2.AdvancedStats = stats;
+                });
             }
-            await db.SaveChangesAsync();
+            return await _searchThrough(_nazwaConfy, lista);
+        }
+
+        public static async Task<string> _searchThrough(string _Confa, List<Advanced> lista)
+        {
+            return lista.Where(x => x.conference == _Confa).Select(x => x.team).FirstOrDefault();
+        }
+
+        public static async Task<string> _downloadAdvanced()
+        {
+            return API.Download("/stats/season/advanced?year=2010");
         }
     }
 }

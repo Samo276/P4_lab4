@@ -14,6 +14,6 @@ namespace P4_api_zadanko_w_net_core
         public string abbreviation { get; set; }
         [ForeignKey("KONFA")]
         public string conference { get; set; }
-        public Advanced AdvancedStats { get; set; }
+        public string team { get; set; }
     }
 }
